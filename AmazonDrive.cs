@@ -229,7 +229,7 @@ namespace Azi.Amazon.CloudDrive
                     var anytask = await Task.WhenAny(task, timeoutTask).ConfigureAwait(false);
                     if (anytask == task)
                     {
-                        await ProcessRedirect(await task, clientId, clientSecret, redirectUrl).ConfigureAwait(false);
+                        await ProcessRedirect(await task, redirectUrl).ConfigureAwait(false);
 
                         this.scope = scope;
                     }
@@ -250,7 +250,26 @@ namespace Azi.Amazon.CloudDrive
             return Token != null;
         }
 
-        private async Task ProcessRedirect(HttpListenerContext context, string clientId, string secret, string redirectUrl)
+        public async Task<AuthToken> ExchangeCode(string code)
+        {
+            var form = new Dictionary<string, string>
+                {
+                    {"grant_type", "authorization_code"},
+                    {"code", code},
+                    {"client_id", clientId},
+                    {"client_secret", clientSecret},
+                    {"redirect_uri", redirectUrl}
+                };
+            Token = await http.PostForm<AuthToken>("https://api.amazon.com/auth/o2/token", form).ConfigureAwait(false);
+            if (Token != null)
+                OnTokenUpdate?.Invoke(Token.access_token, Token.refresh_token, DateTime.UtcNow.AddSeconds(Token.expires_in));
+
+            await Account.GetEndpoint().ConfigureAwait(false);
+
+            return Token;
+        }
+
+        private async Task ProcessRedirect(HttpListenerContext context, string redirectUrl)
         {
             var error = HttpUtility.ParseQueryString(context.Request.Url.Query).Get("error_description");
 
@@ -268,7 +287,7 @@ namespace Azi.Amazon.CloudDrive
                                     { "grant_type","authorization_code" },
                                     {"code",code},
                                     {"client_id",clientId},
-                                    {"client_secret",secret},
+                                    {"client_secret",clientSecret},
                                     {"redirect_uri",redirectUrl}
                                 };
             Token = await http.PostForm<AuthToken>("https://api.amazon.com/auth/o2/token", form).ConfigureAwait(false);
