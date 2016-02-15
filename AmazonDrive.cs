@@ -78,10 +78,11 @@ namespace Azi.Amazon.CloudDrive
         /// </summary>
         /// <param name="clientId">Your App ClientID. From Amazon Developers Console.</param>
         /// <param name="clientSecret">Your App Secret. From Amazon Developers Console.</param>
-        public AmazonDrive(string clientId, string clientSecret)
+        public AmazonDrive(string clientId, string clientSecret, string redirect)
         {
             this.clientSecret = clientSecret;
             this.clientId = clientId;
+            this.redirectUrl = redirect;
             http = new Tools.HttpClient(SettingsSetter);
             Account = new AmazonAccount(this);
             Nodes = new AmazonNodes(this);
